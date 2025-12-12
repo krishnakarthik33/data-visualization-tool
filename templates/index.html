@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Advanced Pro DataViz Studio</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Tailwind CDN for quick styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body { background: linear-gradient(180deg,#071024,#08102a); color:#e6eef8; min-height:100vh; }
+    .card { background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.04); border-radius:12px; padding:12px; }
+    .drop-area { border: 2px dashed rgba(255,255,255,0.06); padding:16px; border-radius:8px; text-align:center; cursor:pointer; }
+    .project-item:hover { background: rgba(255,255,255,0.02); cursor:pointer; }
+    .small-muted { color: rgba(230,238,248,0.6); font-size:13px; }
+    .charts-grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(360px,1fr)); gap:12px; }
+  </style>
+</head>
+<body class="p-6">
+
+  <div class="max-w-7xl mx-auto">
+
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-2xl font-bold">Advanced Pro DataViz Studio</h1>
+      <div id="authArea" class="flex items-center space-x-2">
+        <div class="small-muted mr-2" id="loggedUser">Not logged in</div>
+        <button id="btnLogin" class="px-3 py-1 bg-sky-600 rounded">Login</button>
+        <button id="btnRegister" class="px-3 py-1 bg-sky-500 rounded">Register</button>
+        <button id="btnLogout" class="px-3 py-1 bg-gray-600 rounded hidden">Logout</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-12 gap-6">
+
+      <!-- Left panel: Upload, Files, Projects -->
+      <div class="col-span-4 space-y-4">
+        <div class="card">
+          <h2 class="font-bold">Upload Data</h2>
+          <div class="mt-3 drop-area" id="dropArea">
+            Drop CSV / Excel here or click to choose file
+            <div class="small-muted mt-2">Supports .csv, .xlsx, .xls</div>
+            <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" class="hidden" />
+          </div>
+
+          <div class="mt-3">
+            <div class="flex items-center justify-between">
+              <div class="small-muted">Preview (first rows)</div>
+              <div class="small-muted">Rows: <span id="previewRows">0</span></div>
+            </div>
+            <div id="previewBox" class="mt-2 max-h-48 overflow-auto text-sm"></div>
+          </div>
+
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <button id="btnSample" class="px-3 py-1 bg-sky-600 rounded">Sample</button>
+            <button id="btnClear" class="px-3 py-1 bg-gray-700 rounded">Clear</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="font-bold">File Actions</h2>
+          <div class="mt-2">
+            <label class="small-muted">Choose X & Y</label>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <select id="xcol" class="p-2 rounded bg-transparent border"></select>
+              <select id="ycol" class="p-2 rounded bg-transparent border"></select>
+            </div>
+
+            <div class="mt-3">
+              <label class="small-muted">Chart Type</label>
+              <select id="chartType" class="w-full p-2 mt-1 rounded bg-transparent border">
+                <option value="line">Line</option>
+                <option value="bar">Bar</option>
+                <option value="scatter">Scatter</option>
+                <option value="pie">Pie</option>
+                <option value="radar">Radar</option>
+              </select>
+            </div>
+
+            <div class="mt-3">
+              <label class="small-muted">Color</label>
+              <input id="colorPick" type="color" value="#60a5fa" class="w-full p-1 rounded mt-1" />
+            </div>
+
+            <div class="mt-3 grid grid-cols-2 gap-2">
+              <button id="btnAddChart" class="px-3 py-1 bg-emerald-600 rounded">Add Chart</button>
+              <button id="btnGenerate" class="px-3 py-1 bg-sky-600 rounded">Render Chart (single)</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="font-bold">Filters</h2>
+          <div id="filtersBox" class="mt-2 text-sm small-muted">Select columns after upload to create filters</div>
+        </div>
+
+        <div class="card">
+          <h2 class="font-bold">Projects</h2>
+          <div class="mt-2 small-muted">Save dashboards and load them later</div>
+          <div class="mt-2">
+            <input id="projName" placeholder="Project name" class="w-full p-2 bg-transparent border rounded" />
+            <div class="mt-2 grid grid-cols-2 gap-2">
+              <button id="btnSaveProj" class="px-3 py-1 bg-indigo-600 rounded">Save</button>
+              <button id="btnListProj" class="px-3 py-1 bg-gray-700 rounded">My Projects</button>
+            </div>
+          </div>
+
+          <div id="projectsList" class="mt-3 max-h-36 overflow-auto"></div>
+        </div>
+
+      </div>
+
+      <!-- Right panel: Charts -->
+      <div class="col-span-8">
+        <div class="card p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <div class="small-muted">Dashboard</div>
+              <div class="text-lg font-bold" id="dashTitle">New Dashboard</div>
+            </div>
+            <div>
+              <div class="small-muted">Total charts: <span id="chartCount">0</span></div>
+            </div>
+          </div>
+
+          <div class="charts-grid" id="chartsGrid">
+            <!-- chart panels injected here -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Simple login/register modal (native, minimal) -->
+  <div id="modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center">
+    <div class="bg-slate-900 p-6 rounded w-96">
+      <h3 id="modalTitle" class="font-bold mb-2">Login</h3>
+      <input id="authUser" placeholder="username" class="w-full p-2 rounded bg-transparent border mb-2" />
+      <input id="authPass" type="password" placeholder="password" class="w-full p-2 rounded bg-transparent border mb-4" />
+      <div class="flex justify-end space-x-2">
+        <button id="modalCancel" class="px-3 py-1 bg-gray-600 rounded">Cancel</button>
+        <button id="modalSubmit" class="px-3 py-1 bg-sky-600 rounded">Submit</button>
+      </div>
+      <div class="mt-3 small-muted" id="modalMsg"></div>
+    </div>
+  </div>
+
+  <script>
+    // ---------------- global state ----------------
+    let uploadedFile = '';
+    let lastCSVText = '';
+    let tablePreviewRows = [];
+    let charts = []; // each: {id, chartObj, config}
+    let nextChartId = 1;
+    let columns = [];
+    let currentUser = null;
+
+    // ---------- helpers ----------
+    function el(q){ return document.querySelector(q) }
+    function els(q){ return Array.from(document.querySelectorAll(q)) }
+    function setPreviewHTML(html){ el('#previewBox').innerHTML = html }
+    function setSmallMsg(sel, txt){ document.querySelectorAll(sel).forEach(x=>x.innerText = txt) }
+
+    // ---------- drag & drop ----------
+    const dropArea = el('#dropArea');
+    const fileInput = el('#fileInput');
+    dropArea.addEventListener('click', ()=> fileInput.click());
+    fileInput.addEventListener('change', async (e)=> await handleFile(e.target.files[0]));
+    ;['dragenter','dragover'].forEach(ev => {
+      dropArea.addEventListener(ev, (e)=>{ e.preventDefault(); dropArea.classList.add('ring'); });
+    });
+    ;['dragleave','drop'].forEach(ev => {
+      dropArea.addEventListener(ev, (e)=>{ e.preventDefault(); dropArea.classList.remove('ring'); });
+    });
+    dropArea.addEventListener('drop', async (e)=> {
+      const f = e.dataTransfer.files[0];
+      if(f) await handleFile(f);
+    });
+
+    async function handleFile(file){
+      if(!file) return;
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', { method:'POST', body: fd });
+      const j = await res.json();
+      if(j.error){ alert('Upload error: ' + j.error); return; }
+      uploadedFile = j.file;
+      columns = j.columns || [];
+      tablePreviewRows = j.preview || [];
+      renderPreview();
+      fillColumnSelects();
+      buildFilterUI();
+      alert('Uploaded: ' + uploadedFile);
+    }
+
+    // ---------- sample ----------
+    el('#btnSample').addEventListener('click', ()=>{
+      const sample = `x,y,category
+1,10,A
+2,22,B
+3,18,A
+4,30,B
+5,42,A
+6,35,B
+7,40,A
+8,50,B`;
+      // create client-side preview without server upload
+      lastCSVText = sample;
+      parsePreviewFromText(sample);
+      fillColumnSelects();
+      buildFilterUI();
+    });
+
+    // ---------- preview rendering ----------
+    function parsePreviewFromText(text){
+      const lines = text.trim().split(/\r?\n/).filter(Boolean);
+      if(lines.length===0) { setPreviewHTML('No preview'); return; }
+      const headers = lines[0].split(',').map(s=>s.trim());
+      const rows = lines.slice(1,1+8).map(r => r.split(',').map(c=>c.trim()));
+      columns = headers;
+      tablePreviewRows = rows.map(r => {
+        const o = {};
+        headers.forEach((h,i)=> o[h]= r[i] ?? '');
+        return o;
+      });
+      renderPreview();
+      el('#previewRows').innerText = rows.length;
+    }
+
+    function renderPreview(){
+      if(!columns || columns.length===0){ setPreviewHTML('<div class="small-muted">No file selected</div>'); return; }
+      let html = '<table class="w-full text-sm"><thead><tr>';
+      columns.forEach(c => html += `<th class="text-left pr-2">${c}</th>`);
+      html += '</tr></thead><tbody>';
+      tablePreviewRows.forEach(row => {
+        html += '<tr>';
+        columns.forEach(c => html += `<td class="pr-2">${row[c] ?? ''}</td>`);
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      setPreviewHTML(html);
+      el('#previewRows').innerText = tablePreviewRows.length || 0;
+    }
+
+    // ---------- fill selects ----------
+    function fillColumnSelects(){
+      const xsel = el('#xcol'), ysel = el('#ycol');
+      xsel.innerHTML=''; ysel.innerHTML='';
+      columns.forEach(c => {
+        xsel.innerHTML += `<option value="${c}">${c}</option>`;
+        ysel.innerHTML += `<option value="${c}">${c}</option>`;
+      });
+    }
+
+    // ---------- filter UI builder ----------
+    function buildFilterUI(){
+      const box = el('#filtersBox');
+      box.innerHTML = '';
+      if(!columns || columns.length===0){ box.innerHTML = '<div class="small-muted">No columns</div>'; return; }
+      columns.forEach(col => {
+        const div = document.createElement('div');
+        div.className = 'mb-2';
+        div.innerHTML = `
+          <div class="text-sm font-medium">${col}</div>
+          <div class="mt-1 flex space-x-2">
+            <input placeholder="min" data-col="${col}" data-type="min" class="p-1 rounded bg-transparent border w-1/3 text-sm" />
+            <input placeholder="max" data-col="${col}" data-type="max" class="p-1 rounded bg-transparent border w-1/3 text-sm" />
+            <input placeholder="text" data-col="${col}" data-type="text" class="p-1 rounded bg-transparent border flex-1 text-sm" />
+          </div>
+        `;
+        box.appendChild(div);
+      });
+    }
+
+    function collectFilters(){
+      const box = el('#filtersBox');
+      if(!box) return {};
+      const filters = {};
+      box.querySelectorAll('input').forEach(inp => {
+        const col = inp.dataset.col;
+        const type = inp.dataset.type;
+        if(!col) return;
+        filters[col] = filters[col] || {};
+        if(type === 'text') {
+          if(inp.value.trim()) filters[col].type = 'text', filters[col].text = inp.value.trim();
+        } else {
+          // range
+          filters[col].type = 'range';
+          const mn = inp.parentElement.querySelector('[data-type="min"]').value;
+          const mx = inp.parentElement.querySelector('[data-type="max"]').value;
+          if(mn) filters[col].min = mn;
+          if(mx) filters[col].max = mx;
+        }
+      });
+      // trim empty entries
+      Object.keys(filters).forEach(k => {
+        if(!filters[k].min && !filters[k].max && !filters[k].text) delete filters[k];
+      });
+      return filters;
+    }
+
+    // ---------- Adding chart panels ----------
+    el('#btnAddChart').addEventListener('click', async ()=>{
+      if(!uploadedFile && !lastCSVText){ alert('Upload file or sample first'); return; }
+      const cfg = {
+        file: uploadedFile || null,
+        xcol: el('#xcol').value,
+        ycol: el('#ycol').value,
+        type: el('#chartType').value,
+        color: el('#colorPick').value,
+        filters: collectFilters()
+      };
+      addChartPanel(cfg, true);
+    });
+
+    // Render single chart (temporary preview)
+    el('#btnGenerate').addEventListener('click', async ()=>{
+      if(!uploadedFile && !lastCSVText){ alert('Upload file or sample first'); return; }
+      const cfg = {
+        file: uploadedFile || null,
+        xcol: el('#xcol').value,
+        ycol: el('#ycol').value,
+        type: el('#chartType').value,
+        color: el('#colorPick').value,
+        filters: collectFilters()
+      };
+      // create a transient panel or reuse first panel
+      addChartPanel(cfg, true);
+    });
+
+    function addChartPanel(cfg, fetchData=true){
+      const id = nextChartId++;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'card p-3';
+      wrapper.id = `chartPanel_${id}`;
+      wrapper.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-medium">${cfg.ycol} vs ${cfg.xcol}</div>
+          <div class="flex items-center space-x-2">
+            <button data-action="export" class="px-2 py-1 bg-gray-700 rounded text-sm">Export PNG</button>
+            <button data-action="remove" class="px-2 py-1 bg-red-700 rounded text-sm">Remove</button>
+          </div>
+        </div>
+        <div style="height:300px">
+          <canvas id="cvs_${id}"></canvas>
+        </div>
+        <div class="mt-2 small-muted">Rows: <span id="rows_${id}">0</span></div>
+      `;
+      el('#chartsGrid').prepend(wrapper);
+      el('#chartCount').innerText = document.querySelectorAll('#chartsGrid > .card').length;
+      // attach actions
+      wrapper.querySelector('[data-action="remove"]').addEventListener('click', ()=> {
+        if(wrapper && wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+        el('#chartCount').innerText = document.querySelectorAll('#chartsGrid > .card').length;
+      });
+      wrapper.querySelector('[data-action="export"]').addEventListener('click', async ()=>{
+        const chart = charts.find(c=>c.id===id);
+        if(!chart || !chart.chartObj) { alert('No chart'); return; }
+        const dataURL = chart.chartObj.toBase64Image();
+        const name = prompt('File name to save (e.g. mychart.png)', `chart_${Date.now()}.png`);
+        if(!name) return;
+        const res = await fetch('/api/save_png', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ name, dataURL })
+        });
+        const j = await res.json();
+        if(j.error) alert('Export failed: ' + j.error);
+        else {
+          alert('Saved: ' + j.url);
+          window.open(j.url, '_blank');
+        }
+      });
+      // record chart state
+      charts.push({ id, cfg, chartObj: null });
+      // fetch data and render chart
+      if(fetchData){
+        fetchChartDataAndRender(id, cfg);
+      }
+    }
+
+    async function fetchChartDataAndRender(panelId, cfg){
+      // if cfg.file provided, fetch from server endpoint; otherwise use lastCSVText (sample)
+      let dataJson;
+      if(cfg.file){
+        const res = await fetch('/api/generate_chart', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ file: cfg.file, xcol: cfg.xcol, ycol: cfg.ycol, filters: cfg.filters || {} })
+        });
+        dataJson = await res.json();
+        if(dataJson.error){ alert('Data error: ' + dataJson.error); return; }
+      } else {
+        // parse lastCSVText into arrays
+        const parsed = parseCSVLocal(lastCSVText);
+        const xi = parsed.columns.indexOf(cfg.xcol);
+        const yi = parsed.columns.indexOf(cfg.ycol);
+        const x = [], y = [];
+        parsed.rows.forEach(r=> { x.push(r[xi]); y.push(r[yi]); });
+        dataJson = { x, y, rows: y.length };
+      }
+
+      const ctx = document.getElementById(`cvs_${panelId}`).getContext('2d');
+      // cleanup old chart with same canvas
+      const existing = charts.find(c=>c.id===panelId);
+      if(existing && existing.chartObj){ try{ existing.chartObj.destroy(); }catch(e){} }
+      // prepare data
+      let labels = dataJson.x;
+      let data = dataJson.y.map(v=> isNaN(Number(v)) ? null : Number(v));
+      let type = cfg.type || 'line';
+      let dataset = {
+        label: cfg.ycol + ' vs ' + cfg.xcol,
+        data: type === 'scatter' ? labels.map((lv, i) => ({ x: isNaN(Number(lv))?lv:Number(lv), y: data[i]})) : data,
+        fill: false,
+        borderColor: cfg.color || '#60a5fa',
+        backgroundColor: type === 'pie' ? generatePieColors(data.length) : hexToRgba(cfg.color || '#60a5fa', 0.12),
+        tension: 0.3,
+        pointRadius: 3
+      };
+      const chartCfg = {
+        type: type === 'scatter' ? 'scatter' : type,
+        data: { labels: type === 'scatter' ? labels.map((v,i)=>i+1) : labels, datasets: [dataset] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display:true } },
+          scales: type === 'pie' ? {} : { x: { ticks: { color: '#cfe7ff' }, grid: { color: 'rgba(255,255,255,0.03)' } }, y: { ticks: { color: '#cfe7ff' }, grid: { color: 'rgba(255,255,255,0.03)' } } }
+        }
+      };
+      const ch = new Chart(ctx, chartCfg);
+      // store
+      const obj = charts.find(c=>c.id===panelId);
+      if(obj) obj.chartObj = ch;
+      el(`#rows_${panelId}`).innerText = dataJson.rows || (data ? data.length : 0);
+    }
+
+    // ---------- small CSV parser for client-only sample use ----------
+    function parseCSVLocal(text){
+      const lines = text.trim().split(/\r?\n/).filter(Boolean);
+      const headers = lines[0].split(',').map(h=>h.trim());
+      const rows = lines.slice(1).map(r => r.split(',').map(c=>c.trim()));
+      return { columns: headers, rows };
+    }
+
+    function generatePieColors(n){
+      const out = [];
+      for(let i=0;i<n;i++){ const hue = Math.round((i*360/n)); out.push(`hsl(${hue} 80% 60% / 0.9)`); }
+      return out;
+    }
+    function hexToRgba(hex, a){ hex = hex.replace('#',''); const r=parseInt(hex.substring(0,2),16); const g=parseInt(hex.substring(2,4),16); const b=parseInt(hex.substring(4,6),16); return `rgba(${r},${g},${b},${a})`;}
+
+    // ---------- Save / List / Load projects ----------
+    el('#btnSaveProj').addEventListener('click', async ()=>{
+      if(!currentUser){ alert('Please login to save projects'); return; }
+      const name = el('#projName').value || `Dashboard ${new Date().toLocaleString()}`;
+      // collect current dashboard config: list of chart configs
+      const cfgs = charts.map(c => c.cfg);
+      if(cfgs.length===0){ if(!confirm('No charts in dashboard. Save anyway?') ) return; }
+      const body = { name, file: uploadedFile, config: cfgs };
+      const res = await fetch('/api/save_project', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      const j = await res.json();
+      if(j.error) alert('Save failed: ' + j.error); else { alert('Saved project id: ' + j.project_id); }
+    });
+
+    el('#btnListProj').addEventListener('click', async ()=>{
+      if(!currentUser){ alert('Please login'); return; }
+      const res = await fetch('/api/list_projects');
+      const j = await res.json();
+      if(j.error) { alert(j.error); return; }
+      const box = el('#projectsList'); box.innerHTML = '';
+      j.projects.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'project-item p-2 rounded';
+        div.innerHTML = `<div class="font-medium">${p.name}</div><div class="small-muted text-xs">${new Date(p.created_at).toLocaleString()}</div>`;
+        div.addEventListener('click', async ()=> {
+          const r = await fetch('/api/load_project/' + p.id);
+          const pj = await r.json();
+          if(pj.error){ alert(pj.error); return; }
+          // load project: set uploadedFile, columns, and build charts per config
+          uploadedFile = pj.file;
+          // fetch columns for file to populate selects
+          const colRes = await fetch('/api/columns', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ file: uploadedFile }) });
+          const colJ = await colRes.json();
+          if(!colJ.error){ columns = colJ.columns; fillColumnSelects(); buildFilterUI(); }
+          // clear existing charts
+          el('#chartsGrid').innerHTML = '';
+          charts = [];
+          el('#chartCount').innerText = '0';
+          // create chart panels from pj.config
+          (pj.config || []).forEach(cfg => addChartPanel(cfg, true));
+        });
+        box.appendChild(div);
+      });
+    });
+
+    // ---------- Auth modal handling ----------
+    el('#btnLogin').addEventListener('click', ()=> openAuthModal('login'));
+    el('#btnRegister').addEventListener('click', ()=> openAuthModal('register'));
+    el('#modalCancel').addEventListener('click', ()=> closeAuthModal());
+    el('#modalSubmit').addEventListener('click', async ()=>{
+      const mode = el('#modal').dataset.mode;
+      const user = el('#authUser').value.trim();
+      const pass = el('#authPass').value;
+      if(!user||!pass){ el('#modalMsg').innerText = 'provide credentials'; return; }
+      const endpoint = mode === 'register' ? '/register' : '/login';
+      const res = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username: user, password: pass }) });
+      const j = await res.json();
+      if(j.error){ el('#modalMsg').innerText = j.error; }
+      else {
+        closeAuthModal();
+        currentUser = j.username;
+        el('#loggedUser').innerText = 'Hi, ' + currentUser;
+        el('#btnLogout').classList.remove('hidden');
+        el('#btnLogin').classList.add('hidden');
+        el('#btnRegister').classList.add('hidden');
+      }
+    });
+    el('#btnLogout').addEventListener('click', async ()=> {
+      await fetch('/logout', { method: 'POST' });
+      currentUser = null;
+      el('#loggedUser').innerText = 'Not logged in';
+      el('#btnLogout').classList.add('hidden');
+      el('#btnLogin').classList.remove('hidden');
+      el('#btnRegister').classList.remove('hidden');
+    });
+
+    function openAuthModal(mode){
+      el('#modal').classList.remove('hidden');
+      el('#modalTitle').innerText = mode === 'register' ? 'Register' : 'Login';
+      el('#modal').dataset.mode = mode;
+      el('#modalMsg').innerText = '';
+      el('#authUser').value = '';
+      el('#authPass').value = '';
+    }
+    function closeAuthModal(){ el('#modal').classList.add('hidden'); }
+
+    // ---------- clear ----------
+    el('#btnClear').addEventListener('click', ()=> {
+      uploadedFile = '';
+      lastCSVText = '';
+      columns = [];
+      tablePreviewRows = [];
+      renderPreview();
+      el('#chartsGrid').innerHTML = '';
+      charts = [];
+      el('#chartCount').innerText = '0';
+    });
+
+    // init: sample
+    el('#btnSample').click();
+
+  </script>
+</body>
+</html>
